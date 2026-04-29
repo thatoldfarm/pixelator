@@ -1,7 +1,7 @@
 # pixelator
 A method to encode and decode files to and from PNG files.
 
-#### Technical Deep Dive: How the Encoding Works
+#### How the Encoding Works
 
 The encoding process is a multi-stage pipeline that transforms raw file data into a visual image. 
 
