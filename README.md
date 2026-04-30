@@ -1,6 +1,12 @@
 # pixelator
 A method to encode and decode files to and from PNG files.
 
+# NOTE:
+
+The latest version of the script is the 'pixelator-standalone-full.py' and 'pixelator-standalone-auto.py' scripts. Both of which handle adding metadata to the PNG and handle batch processing.
+
+---
+
 #### How the Encoding Works
 
 The encoding process is a multi-stage pipeline that transforms raw file data into a visual image. 
