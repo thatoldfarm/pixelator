@@ -120,7 +120,7 @@ python3 pixelator-standalone-full.py decode
 
 ---
 
-#### **The below section is for the 'pixelator.py' and 'de-pixelator.py' scripts only.**
+#### **The section below details the 'pixelator.py' and 'de-pixelator.py' scripts.**
 
 ### How the Encoding Works
 
