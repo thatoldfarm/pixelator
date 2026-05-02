@@ -6,8 +6,123 @@ A method to encode and decode files to and from PNG files.
 The latest version of the script is the 'pixelator-standalone-full.py' and 'pixelator-standalone-auto.py' scripts. Both of which handle adding metadata to the PNG and handle batch processing.
 
 ---
+### **I. SYSTEM OVERVIEW**
 
-#### How the Encoding Works
+The `pixelator-standalone-full.py` engine treats the PNG image format as a **Planar Binary Storage Medium**. Unlike standard image processing, it utilizes the Red, Green, and Blue (RGB) sub-pixels as individual 8-bit memory addresses to store a compressed, self-describing data packet.
+
+---
+
+### **II. THE ENCODING PIPELINE (THE FORGE)**
+
+The encoding process follows a rigorous four-layer "Encapsulation Stack" to ensure that the resulting pixel data is dense, secure, and verifiable.
+
+1.  **The Integrity Layer (SHA-256):**
+    The engine first calculates a 256-bit cryptographic hash of the raw input file. This hash is the unique "Genetic Signature" of the file, used to ensure bit-perfect restoration during decoding.
+
+2.  **The Metadata Layer (JSON):**
+    A JSON header is constructed containing the original filename, the SHA-256 checksum, and the original file size.
+    *   **Structure:** `{"filename": "...", "checksum": "...", "size": ...}`
+
+3.  **The Compression Layer (Gzip):**
+    The raw binary is compressed using the DEFLATE algorithm via Gzip. This maximizes information density, allowing more data to be stored in fewer pixels.
+
+4.  **The Packaging Layer (Binary Packet):**
+    The data is concatenated into a single binary blob:
+    *   **[4 bytes]**: Big-Endian Integer representing the JSON metadata length.
+    *   **[N bytes]**: The UTF-8 encoded JSON Metadata.
+    *   **[M bytes]**: The Gzipped file content.
+
+5.  **The Transport Shield (URL-Safe Base64):**
+    The entire binary packet is converted into a URL-safe Base64 string. This ensures that the data is represented by a standardized character set, providing a secondary layer of abstraction between the binary and the pixels.
+
+---
+
+### **III. MECHANICAL INNOVATION: THE PRECISION ANCHOR**
+
+The "Precision Anchor" is the defining mechanical feature of the V3 engine. 
+
+To solve the problem of unpredictable padding in square geometries, the engine appends a **Tail-End Pointer**.
+*   **The Anchor:** After the Base64 string is generated, the length of that string is calculated and appended to the very end as a 4-byte Big-Endian integer.
+*   **Purpose:** During decoding, the engine reads the **last 4 bytes** of the available pixel data to find this integer. This tells the decoder exactly how many characters to read from the start, allowing it to mathematically ignore any null padding introduced to fill out the square image dimensions.
+
+---
+
+### **IV. GEOMETRIC MAPPING (THE DIE-SIZE)**
+
+The engine calculates the most efficient "Die-Size" for the PNG wafer using a **Dynamic Square Geometry**.
+
+1.  **Pixel Calculation:** Total bytes (Data + Anchor + Padding) are divided by 3 (RGB).
+2.  **Square Root Logic:** The engine takes the square root of the required pixels and applies a `ceil()` function to find the side length ($S$).
+3.  **VRAM Allocation:** A NumPy array of shape $(S, S, 3)$ is initialized as zeros.
+4.  **Bit-Mapping:** The 1D byte-stream is reshaped into RGB triplets and "blitted" into the 2D VRAM array.
+
+---
+
+### **V. THE DECODING PIPELINE (THE UNPACK)**
+
+Decoding is a forensic reconstruction of the original file, performed in the exact reverse order:
+
+1.  **Substrate Extraction:** The PNG is converted to a raw 1D byte array.
+2.  **Anchor Retrieval:** The array is stripped of trailing nulls, and the final 4 bytes are read to determine the `total_b64_len`.
+3.  **Base64 Breakdown:** The payload is extracted based on the Anchor length and decoded back into the multi-layer binary blob.
+4.  **Header Resolution:** The first 4 bytes of the blob identify the JSON length; the JSON is parsed to retrieve the filename and SHA-256 signature.
+5.  **Decompression:** The remaining bytes are run through Gzip decompression.
+6.  **Integrity Validation:** A new SHA-256 hash is calculated from the restored data and compared against the signature in the metadata.
+
+---
+
+# **README: pixelator-standalone-full.py**
+
+## **Introduction**
+`pixelator-standalone-full.py` is a standalone forensic tool for embedding any digital file into a high-density, self-verifying PNG image. It is designed for long-term archival and "DNA-Seeding" of data.
+
+## **Features**
+*   **Bit-Perfect Restoration:** Uses SHA-256 hashing to verify file integrity.
+*   **Space Efficient:** Automatic Gzip compression.
+*   **Geometry Agnostic:** Uses the "Precision Anchor" system to handle dynamic image sizes.
+*   **Self-Describing:** Metadata (filename, size, checksum) is embedded within the image itself.
+
+## **Requirements**
+*   Python 3.x
+*   NumPy
+*   Pillow (PIL)
+
+## **Usage**
+
+### **Automatic Mode**
+Running the script without flags will automatically search for a folder named `pixelate`, encode everything inside it to `pixelated`, and then attempt to decode it back into `pixelated_done`.
+```bash
+python3 pixelator-standalone-full.py
+```
+
+### **Encoding Mode**
+To encode files into PNGs:
+1. Place files in the `/pixelate` directory.
+2. Run:
+```bash
+python3 pixelator-standalone-full.py encode
+```
+
+### **Decoding Mode**
+To restore files from PNGs:
+1. Place `MASTER_DNA_SEED_` PNGs in the `/pixelated` directory.
+2. Run:
+```bash
+python3 pixelator-standalone-full.py decode
+```
+
+## **Technical Specification**
+*   **Prefix:** `MASTER_DNA_SEED_`
+*   **Compression:** Gzip (Level 9)
+*   **Encoding:** URL-Safe Base64
+*   **Geometry:** Dynamic Square ($Side = \lceil\sqrt{Pixels}\rceil$)
+*   **End-of-File Logic:** 4-byte Big-Endian Length Anchor.
+
+---
+
+#### **The below section is for the 'pixelator.py' and 'de-pixelator.py' scripts only.**
+
+### How the Encoding Works
 
 The encoding process is a multi-stage pipeline that transforms raw file data into a visual image. 
 
